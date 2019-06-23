@@ -10,6 +10,12 @@ import ARKit
 
 class Sphere: SCNNode {
     
+    enum State {
+        case IDLE, FOCUS
+    }
+    
+    var state: State!
+    
     override init() {
         super.init()
         guard let scn = SCNScene(named: "Sphere.scn"),
@@ -19,9 +25,7 @@ class Sphere: SCNNode {
         
         addChildNode(sphere)
         
-        transform.m43 -= 2 // -1 * Float.random(in: 1...1.5) // Z
-        
-        sphere.scale = SCNVector3(0.25, 0.25, 0.25)
+        sphere.scale = SCNVector3(0.35, 0.35, 0.35)
         startIdleAnimation()
     }
     
@@ -29,7 +33,9 @@ class Sphere: SCNNode {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private func startIdleAnimation() {
+    func startIdleAnimation() {
+        guard state != .IDLE else { return }
+        state = .IDLE
         let rotatePi = SCNAction.rotateBy(x: 0, y: CGFloat(Float.pi), z: 0, duration: 5)
         let hoverUp = SCNAction.moveBy(x: 0, y: 0.2, z: 0, duration: 2.5)
         let hoverDown = SCNAction.moveBy(x: 0, y: -0.2, z: 0, duration: 2.5)
@@ -41,27 +47,26 @@ class Sphere: SCNNode {
         runAction(loop)
     }
     
-    private func face(to cameraOrientation: simd_float4x4) {
-        
-        var transform = cameraOrientation
+    func didUpdateCameraPosition(_ camera: ARCamera) {
+        state = .FOCUS
+        var transform = -camera.transform
         transform.columns.3.x = position.x
         transform.columns.3.y = position.y
         transform.columns.3.z = position.z
         
         self.transform = SCNMatrix4(transform)
-        
-    }
-    
-    func didUpdateCameraPosition(_ camera: simd_float4x4) {
-        face(to: camera)
     }
 }
 
 extension Sphere {
-    static func insertBalls() {
-    // Position the item
-    //    transform.m41 = Float.random(in: -1...1) // X
-    //    transform.m42 = Float.random(in: -1...1) // Y
-    //    transform.m43 = -1 * Float.random(in: 1...1.5) // Z
+    static func insertBalls() -> [Sphere] {
+        return (0..<3).map { _ in
+            let sphere = Sphere()
+            sphere.transform.m41 = Float.random(in: -1.5...1.5) // X
+            sphere.transform.m42 = Float.random(in: -1.5...1.5) // Y
+            sphere.transform.m43 = -1.8//-1 * Float.random(in: 2.5...4.5) // Z
+            return sphere
+        }
+        
     }
 }

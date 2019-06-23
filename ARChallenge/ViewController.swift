@@ -12,7 +12,6 @@ import SceneKit
 
 class ViewController: UIViewController {
     @IBOutlet weak var sceneView: ARSCNView!
-    var spheres: [Sphere] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -31,10 +30,9 @@ class ViewController: UIViewController {
     }
     
     private func addSpheres() {
-        let sphere = Sphere()
-        sceneView.prepare([sphere]) { [weak self] _ in
-            self?.spheres.append(sphere)
-            self?.sceneView.scene.rootNode.addChildNode(sphere)
+        let spheres = Sphere.insertBalls()
+        sceneView.prepare(spheres) { [weak self] _ in
+            spheres.forEach{ self?.sceneView.scene.rootNode.addChildNode($0) }
         }
     }
     
@@ -67,7 +65,14 @@ extension ViewController: ARSessionDelegate {
     
     func session(_ session: ARSession, didUpdate frame: ARFrame) {
         
-        guard let cameraOrientation = session.currentFrame?.camera.transform else { return }
+        guard let camera = session.currentFrame?.camera else { return }
+        let rootNode = sceneView.scene.rootNode
+        let spheres = rootNode.childNodes.filter{ $0 is Sphere } as! [Sphere]
+        
+        spheres.forEach { (sphere) in
+            let isFar = sphere.distance(to: camera) > 1.8
+            isFar ? sphere.startIdleAnimation() : sphere.didUpdateCameraPosition(camera)
+        }
         
     }
 }
